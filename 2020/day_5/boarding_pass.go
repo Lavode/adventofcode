@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"sort"
 	"strings"
 )
 
@@ -15,6 +14,9 @@ const rowMaxPower int = 6
 
 // Columns are 0 .. 7 = 2^0 .. 2^3 - 1
 const columnMaxPower int = 2
+
+// Each seat has a 10-bit identifier, so the highest seat has ID 1023.
+const maxSeatId int = 1023
 
 type BoardingPass struct {
 	RowSpec    string
@@ -79,27 +81,30 @@ func taskTwo() {
 
 	// Track which seats were seen
 	seats := make(map[int]bool)
-	for i := 0; i < 1024; i++ {
-		seats[i] = false
-	}
 
 	passes := loadBoardingPasses()
 	for _, pass := range passes {
 		seats[pass.Id()] = true
 	}
 
-	var missingSeats []int
-	for seat, seen := range seats {
-		if !seen {
-			missingSeats = append(missingSeats, seat)
+	// We are guaranteed to have neither the first nor last seat, so skip
+	// those two entries.
+	// Caching variables below prevent having to check each seat thrice.
+	_, previousSeatSeen := seats[0]
+	_, seatSeen := seats[1]
+	nextSeatSeen := false
+	for i := 1; i < maxSeatId; i++ {
+		_, nextSeatSeen = seats[i+1]
+		if previousSeatSeen && nextSeatSeen && !seatSeen {
+			fmt.Printf("Our seat: %d\n", i)
+			return
 		}
+
+		// Our seat not seen, update caching variables
+		previousSeatSeen = seatSeen
+		seatSeen = nextSeatSeen
 	}
 
-	// Sort missing seats in ascending order
-	sort.Ints(missingSeats)
-	for _, seat := range missingSeats {
-		fmt.Printf("Missing seat: %d\n", seat)
-	}
 }
 
 func check(e error) {
