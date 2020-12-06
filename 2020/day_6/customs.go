@@ -66,6 +66,15 @@ func check(e error) {
 // Questions to which none answered are not contained in the inner map. Further
 // each map contains a '_' key which stores the number of members the group
 // has.
+//
+// As an example, consider the following data structure:
+// [
+//   { '_': 3, 'a': 2, 'b': 1 },
+//   { '_': 5, 'a': 5, 'c': 2 },
+// ]
+// This contains data of two groups, one with three members where 2 voted for
+// 'a', one for 'b', and another group with five members where 5 voted for 'a', two
+// for 'c'.
 func loadAnswers() []map[rune]int {
 	var answers []map[rune]int
 
