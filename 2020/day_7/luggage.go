@@ -32,12 +32,57 @@ func taskOne() {
 
 func taskTwo() {
 	fmt.Println("== Task two ==")
+
+	// Rules specify, for each colour, which colours *it must contain*,
+	// whereas we care about *which colours gold can be contained by*.
+	mustContain := loadRules()
+
+	contents := getBagContents("shiny gold", mustContain)
+	contentCount := 0
+	fmt.Printf("A shiny gold bag must contain:\n")
+	for bag, count := range contents {
+		fmt.Printf("  %d x %s\n", count, bag)
+		contentCount += count
+	}
+
+	fmt.Printf("Total content count: %d\n", contentCount)
 }
 
 func check(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+// Return number and type of bags which given bag colour must contain.
+func getBagContents(colour string, mustContain map[string]map[string]int) map[string]int {
+	return getBagContentsRecurse(colour, mustContain, 0)
+}
+
+// This is the recursion body of `getBagContents`, not to be used directly.
+func getBagContentsRecurse(colour string, mustContain map[string]map[string]int, depth int) map[string]int {
+	contents := make(map[string]int)
+
+	rules, ok := mustContain[colour]
+	if !ok {
+		panic(fmt.Sprintf("No information which bags a bag of colour %s must contain.\n", colour))
+	}
+
+	fmt.Printf("%sColour %s must contain:\n", logPad(depth), colour)
+	for bag, count := range rules {
+		fmt.Printf("%s %d x %s\n", logPad(depth), count, bag)
+		contents[bag] += count
+
+		// We needn't guard against potential loops, as the task
+		// guarantees that there are none by asking for a finite number
+		// of bags which must be contained in a given bag.
+		innerContents := getBagContentsRecurse(bag, mustContain, depth+1)
+		for innerBag, innerCount := range innerContents {
+			contents[innerBag] += count * innerCount
+		}
+	}
+
+	return contents
 }
 
 // Return valid bag colours which the given bag colour may be contained in.
@@ -61,6 +106,9 @@ func getOuterColoursForRecurse(colour string, canBeContainedIn map[string]map[st
 	for outerColour, count := range outerColours {
 		fmt.Printf("%s %s (x %d)\n", logPad(depth), outerColour, count)
 
+		// This is, to some extent, to optimize, but also to protect
+		// against potential loops in which bags must contain each
+		// other.
 		if _, ok := validOuterColours[outerColour]; !ok {
 			fmt.Printf("%s This is new information, adding to list\n", logPad(depth))
 			validOuterColours[outerColour] = true
