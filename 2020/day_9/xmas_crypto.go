@@ -76,8 +76,8 @@ func taskTwo() {
 	// we start with the pair of items 2 and 3, and so on.
 	// This is an O(n^2) solution, but for this case good enough.
 	goal := 90433990
-	for start := 0; start < len(numbers)-2; start += 1 {
-		for end := start + 2; end < len(numbers); end += 1 {
+	for start := 0; start <= len(numbers)-2; start += 1 {
+		for end := start + 2; end <= len(numbers); end += 1 {
 			sum := 0
 			for _, x := range numbers[start:end] {
 				sum += x
