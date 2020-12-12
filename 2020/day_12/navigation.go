@@ -1,0 +1,183 @@
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+const inputFile string = "navigation.input"
+
+type Instruction struct {
+	command  string
+	argument int
+}
+
+type Ship struct {
+	// east-west (east positive)
+	longitude int
+	// north-south (north positive)
+	latitude int
+
+	// Orientation. 0 = North, 90 = East, 180 = South, 270 = West
+	heading int
+}
+
+func defaultShip() Ship {
+	// Default ship heading is east
+	return Ship{heading: 90}
+}
+
+func (ship *Ship) Process(inst Instruction) {
+	switch inst.command {
+	case "N":
+		ship.MoveNorth(inst.argument)
+	case "S":
+		ship.MoveSouth(inst.argument)
+	case "E":
+		ship.MoveEast(inst.argument)
+	case "W":
+		ship.MoveWest(inst.argument)
+	case "F":
+		ship.MoveForward(inst.argument)
+	case "L":
+		ship.TurnLeft(inst.argument)
+	case "R":
+		ship.TurnRight(inst.argument)
+	default:
+		panic(fmt.Sprintf("Unknown command: %s\n", inst.command))
+	}
+}
+
+func (ship *Ship) MoveNorth(x int) {
+	ship.latitude += x
+}
+
+func (ship *Ship) MoveSouth(x int) {
+	ship.latitude -= x
+}
+
+func (ship *Ship) MoveEast(x int) {
+	ship.longitude += x
+}
+
+func (ship *Ship) MoveWest(x int) {
+	ship.longitude -= x
+}
+
+func (ship *Ship) MoveForward(x int) {
+	switch ship.heading {
+	case 0:
+		ship.MoveNorth(x)
+	case 90:
+		ship.MoveEast(x)
+	case 180:
+		ship.MoveSouth(x)
+	case 270:
+		ship.MoveWest(x)
+	default:
+		fmt.Printf("Unable to move towards current heading: %d\n", ship.heading)
+	}
+}
+
+func (ship *Ship) TurnLeft(x int) {
+	ship.heading = mod(ship.heading-x, 360)
+}
+
+func (ship *Ship) TurnRight(x int) {
+	ship.heading = mod(ship.heading+x, 360)
+}
+
+// Manhattan distance of ship from origin (0, 0)
+func (ship Ship) distance() int {
+	return abs(ship.longitude) + abs(ship.latitude)
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	} else {
+		return x
+	}
+}
+
+// Go's built-in % operation is a remainder, not a mathematical modulus. As an
+// example, a % b < 0 if a < 0.
+// This is modulo as you know and love it from mathematics.
+func mod(a, b int) int {
+	m := a % b
+
+	if a < 0 {
+		m += abs(b)
+	}
+
+	return m
+}
+
+func main() {
+	taskOne()
+	taskTwo()
+}
+
+func taskOne() {
+	fmt.Println("== Task one ==")
+
+	instructions := loadInstructions()
+	ship := defaultShip()
+
+	for _, instr := range instructions {
+		ship.Process(instr)
+	}
+
+	fmt.Printf("Ship's current position: Lat: %d, Lon: %d, Heading: %d\n", ship.latitude, ship.longitude, ship.heading)
+	fmt.Printf("Distance from origin: %d\n", ship.distance())
+}
+
+func taskTwo() {
+	fmt.Println("== Task two ==")
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+func loadInstructions() []Instruction {
+	data, err := ioutil.ReadFile(inputFile)
+	// Remove trailing newline
+	data = data[:len(data)-1]
+	check(err)
+
+	var instructions []Instruction
+
+	matcher := regexp.MustCompile("^([A-Z])([0-9]+)$")
+
+	// ioutil.ReadFile returns a byte slice, strings.Split expects a string
+	for _, line := range strings.Split(string(data), "\n") {
+		match := matcher.FindStringSubmatch(line)
+		if match == nil || len(match) != 3 {
+			panic(fmt.Sprintf("Invalid input line: %s\n", line))
+		}
+
+		instruction := match[1]
+		arg, err := strconv.Atoi(match[2])
+		check(err)
+
+		switch instruction {
+		case "N", "S", "E", "W", "F":
+		case "L", "R":
+			if arg < 0 || arg > 360 || arg%90 != 0 {
+				panic(fmt.Sprintf("Invalid argument for turn left/right command: %d\n", arg))
+			}
+		default:
+			panic(fmt.Sprintf("Invalid instruction '%s' in line %s\n", instruction, line))
+		}
+
+		instructions = append(instructions, Instruction{command: instruction, argument: arg})
+	}
+
+	return instructions
+}
