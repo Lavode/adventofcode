@@ -57,13 +57,49 @@ func taskTwo() {
 	adapters := loadAdapters()
 	adapters = prependInt(adapters, 0)
 
-	// We require the outlet to be part of the sequence, so can simply
-	// start iteration at it.
-	count := findSolutions(adapters, 0)
-	fmt.Printf("Found valid solutions: %d\n", count)
+	// Generate a list of adapters from which a given adapter can be
+	// reached.
+	// 5 => [2, 4] would eg mean that adapter 5 can be reached from
+	// adapters 2 and 4.
+	reachableFrom := make(map[int][]int)
+	for idx, destination := range adapters {
+		for i := idx - 1; i >= 0; i -= 1 {
+			source := adapters[i]
+			if source >= destination-3 {
+				// Destination can be reached from source
+				reachableFrom[destination] = append(reachableFrom[destination], source)
+			} else {
+				// As the list of adapters is sorted, no
+				// earlier adapter is going to be a valid
+				// source.
+				break
+			}
+		}
+	}
+
+	// Dynamic-programming approach to calculate number of ways in which
+	// the final 'adapter' (ie the device) can be reached.
+	// Given a node `x` can be reached from nodes `a` and `b`, which can be
+	// reached in 3 and 5 ways respectively, then there node `x` can be
+	// reached in 3 + 5 = 8 ways.
+	//
+	// We pre-seed the source node, which can be reached in exactly 1 way
+	// (and has to be part of the path).
+	pathCount := make(map[int]int)
+	pathCount[0] = 1
+	for _, destination := range adapters {
+		for _, source := range reachableFrom[destination] {
+			pathCount[destination] += pathCount[source]
+		}
+
+		fmt.Printf("Node %d can be reached in %d ways\n", destination, pathCount[destination])
+	}
 }
 
 // Find valid arrangments of adapters which connect outlet to personal device.
+//
+// This is a brute-force - albeit smart - solution which traverses all
+// *possible* solutions. It will not scale well with input size.
 func findSolutions(adapters []int, currentIdx int) int {
 	if currentIdx == len(adapters)-1 {
 		// Reached end of list => Found valid solution
