@@ -23,14 +23,68 @@ type Ship struct {
 
 	// Orientation. 0 = North, 90 = East, 180 = South, 270 = West
 	heading int
+
+	waypoint Waypoint
+}
+
+// Waypoint coordinates are always relative to ship, ie really an offset in lat
+// / lon.
+type Waypoint struct {
+	// east-west (east positive)
+	longitude int
+	// north-south (north positive)
+	latitude int
+}
+
+func defaultWaypoint() Waypoint {
+	return Waypoint{longitude: 10, latitude: 1}
+}
+
+func (waypoint *Waypoint) MoveNorth(x int) {
+	waypoint.latitude += x
+}
+
+func (waypoint *Waypoint) MoveSouth(x int) {
+	waypoint.latitude -= x
+}
+
+func (waypoint *Waypoint) MoveEast(x int) {
+	waypoint.longitude += x
+}
+
+func (waypoint *Waypoint) MoveWest(x int) {
+	waypoint.longitude -= x
+}
+
+func (waypoint *Waypoint) RotateLeft(deg int) {
+	// Rotate left (ccw) deg / 90 times (integer division, will round down)
+	for i := 0; i < deg/90; i += 1 {
+		// Each ccw rotation by 90 degrees is equivalent to
+		// transforming (x, y) into (x', y') as:
+		// x' := -y
+		// y' := x
+		waypoint.longitude, waypoint.latitude = -waypoint.latitude, waypoint.longitude
+	}
+}
+
+func (waypoint *Waypoint) RotateRight(deg int) {
+	// Rotate right (cw) deg / 90 times (integer division, will round down)
+	for i := 0; i < deg/90; i += 1 {
+		// Each cw rotation by 90 degrees is equivalent to
+		// transforming (x, y) into (x', y') as:
+		// x' := y
+		// y' := -x
+		waypoint.longitude, waypoint.latitude = waypoint.latitude, -waypoint.longitude
+	}
 }
 
 func defaultShip() Ship {
 	// Default ship heading is east
-	return Ship{heading: 90}
+	return Ship{heading: 90, waypoint: defaultWaypoint()}
 }
 
-func (ship *Ship) Process(inst Instruction) {
+// Instructions move ship directly
+func ProcessDirectMovement(inst Instruction, ship *Ship) {
 	switch inst.command {
 	case "N":
 		ship.MoveNorth(inst.argument)
@@ -46,6 +100,28 @@ func (ship *Ship) Process(inst Instruction) {
 		ship.TurnLeft(inst.argument)
 	case "R":
 		ship.TurnRight(inst.argument)
+	default:
+		panic(fmt.Sprintf("Unknown command: %s\n", inst.command))
+	}
+}
+
+// Instructions move ship by means of waypoint
+func ProcessIndirectMovement(inst Instruction, ship *Ship) {
+	switch inst.command {
+	case "N":
+		ship.waypoint.MoveNorth(inst.argument)
+	case "S":
+		ship.waypoint.MoveSouth(inst.argument)
+	case "E":
+		ship.waypoint.MoveEast(inst.argument)
+	case "W":
+		ship.waypoint.MoveWest(inst.argument)
+	case "F":
+		ship.MoveToWaypoint(inst.argument)
+	case "L":
+		ship.waypoint.RotateLeft(inst.argument)
+	case "R":
+		ship.waypoint.RotateRight(inst.argument)
 	default:
 		panic(fmt.Sprintf("Unknown command: %s\n", inst.command))
 	}
@@ -79,6 +155,17 @@ func (ship *Ship) MoveForward(x int) {
 		ship.MoveWest(x)
 	default:
 		fmt.Printf("Unable to move towards current heading: %d\n", ship.heading)
+	}
+}
+
+func (ship *Ship) MoveToWaypoint(x int) {
+	// Waypoint is relative to ship, if ship moves so does the waypoint. As
+	// such we treat its lat/lon as offsets directly, and never change
+	// them.
+
+	for i := 0; i < x; i += 1 {
+		ship.latitude += ship.waypoint.latitude
+		ship.longitude += ship.waypoint.longitude
 	}
 }
 
@@ -128,7 +215,7 @@ func taskOne() {
 	ship := defaultShip()
 
 	for _, instr := range instructions {
-		ship.Process(instr)
+		ProcessDirectMovement(instr, &ship)
 	}
 
 	fmt.Printf("Ship's current position: Lat: %d, Lon: %d, Heading: %d\n", ship.latitude, ship.longitude, ship.heading)
@@ -137,6 +224,16 @@ func taskOne() {
 
 func taskTwo() {
 	fmt.Println("== Task two ==")
+
+	instructions := loadInstructions()
+	ship := defaultShip()
+
+	for _, instr := range instructions {
+		ProcessIndirectMovement(instr, &ship)
+	}
+
+	fmt.Printf("Ship's current position: Lat: %d, Lon: %d, Heading: %d\n", ship.latitude, ship.longitude, ship.heading)
+	fmt.Printf("Distance from origin: %d\n", ship.distance())
 }
 
 func check(e error) {
