@@ -1,6 +1,6 @@
-use std::process::exit;
+use std::{path::PathBuf, process::exit, str::FromStr};
 
-use adventofcode::{calories, elves::Elf, error::Error, input::input_path};
+use adventofcode::{calories, elves::Elf, error::Error, input, rps::Round};
 use log::{error, info};
 
 fn main() {
@@ -8,7 +8,12 @@ fn main() {
 
     info!("Advent of Code: 2022");
 
-    match day_one() {
+    // match day_one() {
+    //     Ok(_) => info!(""),
+    //     Err(e) => abort(e),
+    // }
+
+    match day_two() {
         Ok(_) => info!(""),
         Err(e) => abort(e),
     }
@@ -16,7 +21,7 @@ fn main() {
 
 fn day_one() -> Result<(), Error> {
     info!("Day 1");
-    let calories = calories::from_file(input_path(1))?;
+    let calories = calories::from_file(input::input_path(1))?;
 
     let mut elves: Vec<Elf> = calories
         .iter()
@@ -42,6 +47,25 @@ fn day_one() -> Result<(), Error> {
         "Top three elves with most calories have total of {} cal in inventory",
         top_three_cals,
     );
+
+    Ok(())
+}
+
+fn day_two() -> Result<(), Error> {
+    info!("Day 2");
+
+    let mut score = 0;
+    let rounds = input::to_string(input::input_path(2))?;
+    let rounds: Vec<&str> = rounds.lines().collect();
+
+    for round in rounds {
+        let round = Round::from_str(round)?;
+        // We are player two
+        let (_, score_b) = round.score();
+        score += score_b;
+    }
+
+    info!("Final score if following strategy book: {}", score);
 
     Ok(())
 }
