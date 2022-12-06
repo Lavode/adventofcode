@@ -1,7 +1,7 @@
-use std::{path::PathBuf, process::exit, str::FromStr};
+use std::{collections::HashSet, path::PathBuf, process::exit, str::FromStr};
 
-use adventofcode::{calories, elves::Elf, error::Error, input, rps::Round};
-use log::{error, info};
+use adventofcode::{calories, elves::Elf, error::Error, input, rps::Round, rucksack::Rucksack};
+use log::{debug, error, info};
 
 fn main() {
     env_logger::init();
@@ -13,7 +13,12 @@ fn main() {
     //     Err(e) => abort(e),
     // }
 
-    match day_two() {
+    // match day_two() {
+    //     Ok(_) => info!(""),
+    //     Err(e) => abort(e),
+    // }
+
+    match day_three() {
         Ok(_) => info!(""),
         Err(e) => abort(e),
     }
@@ -68,6 +73,110 @@ fn day_two() -> Result<(), Error> {
     info!("Final score if following strategy book: {}", score);
 
     Ok(())
+}
+
+fn day_three() -> Result<(), Error> {
+    info!("Day 3");
+    day_three_rucksack_packing()?;
+    day_three_badge_finding()?;
+
+    Ok(())
+}
+
+fn day_three_rucksack_packing() -> Result<(), Error> {
+    let rucksacks = input::to_string(input::input_path(3))?;
+    let rucksacks: Vec<&str> = rucksacks.lines().collect();
+
+    let mut sum = 0;
+
+    for items in rucksacks {
+        let rucksack = Rucksack::from_str(items)?;
+        let intersection = rucksack.intersection();
+        if intersection.len() != 1 {
+            return Err(Error::DataError(format!(
+                "Expected one item to be in both compartments, got {}",
+                intersection.len()
+            )));
+        }
+
+        let item = intersection[0];
+        if !item.is_ascii_alphabetic() {
+            return Err(Error::DataError(format!(
+                "Expected item to be ASCII alphabetic, was not: {}",
+                item
+            )));
+        }
+
+        let priority = item_priority(item);
+
+        debug!(
+            "Common item in both backpacks: {}, has priority: {}",
+            item, priority
+        );
+
+        sum += priority;
+    }
+
+    info!("Sum of items weighed by priority: {}", sum);
+
+    Ok(())
+}
+
+fn day_three_badge_finding() -> Result<(), Error> {
+    let rucksacks = input::to_string(input::input_path(3))?;
+    let rucksacks: Vec<&str> = rucksacks.lines().collect();
+
+    if rucksacks.len() % 3 != 0 {
+        return Err(Error::DataError(format!(
+            "Number of rucksacks must be multiple of three; was: {}",
+            rucksacks.len()
+        )));
+    }
+
+    let mut sum = 0;
+
+    for idx in 0..rucksacks.len() / 3 {
+        let items_a = Rucksack::from_str(rucksacks[idx * 3 + 0])?.items();
+        let items_b = Rucksack::from_str(rucksacks[idx * 3 + 1])?.items();
+        let items_c = Rucksack::from_str(rucksacks[idx * 3 + 2])?.items();
+
+        let badge_items: HashSet<char> = items_a.intersection(&items_b).map(|c| *c).collect();
+        let badge_items: HashSet<char> = badge_items.intersection(&items_c).map(|c| *c).collect();
+
+        if badge_items.len() != 1 {
+            return Err(Error::DataError(format!(
+                "Expected exactly one item to be shared between all three elves, got {}",
+                badge_items.len()
+            )));
+        }
+
+        let badge: Vec<&char> = badge_items.iter().take(1).collect();
+        let badge = badge[0];
+        let priority = item_priority(*badge);
+
+        debug!(
+            "Badge item determined to be {}, with priority {}",
+            badge, priority
+        );
+
+        sum += priority;
+    }
+
+    info!("Sum of badge priorities: {}", sum);
+
+    Ok(())
+}
+
+fn item_priority(item: char) -> u32 {
+    let ascii_lowercase_a = 'a' as u32;
+    let ascii_uppercase_a = 'A' as u32;
+
+    // a-z => 1-26
+    // A-Z => 27-52
+    return match item.is_ascii_lowercase() {
+        true => item as u32 - ascii_lowercase_a + 1,
+        false => item as u32 - ascii_uppercase_a + 27,
+    };
 }
 
 fn abort(e: Error) {
