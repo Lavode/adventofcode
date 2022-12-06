@@ -66,18 +66,41 @@ fn day_one() -> Result<(), Error> {
 fn day_two() -> Result<(), Error> {
     info!("Day 2");
 
-    let mut score = 0;
+    // Score if using rock-paper-scissors serialization
+    let mut score_rps = 0;
+    // Score if using lose-draw-win serialization
+    let mut score_ldw = 0;
+
     let rounds = input::to_string(input::input_path(2))?;
     let rounds: Vec<&str> = rounds.lines().collect();
 
     for round in rounds {
-        let round = Round::from_str(round)?;
+        let round_rps = Round::parse(
+            round,
+            adventofcode::rps::RoundSerializationFormat::RockPaperScissors,
+        )?;
+
+        let round_ldw = Round::parse(
+            round,
+            adventofcode::rps::RoundSerializationFormat::LoseDrawWin,
+        )?;
+
         // We are player two
-        let (_, score_b) = round.score();
-        score += score_b;
+        let (_, score_b_rps) = round_rps.score();
+        let (_, score_b_ldw) = round_ldw.score();
+
+        score_rps += score_b_rps;
+        score_ldw += score_b_ldw;
     }
 
-    info!("Final score if following strategy book: {}", score);
+    info!(
+        "Final score if following strategy book with rock-paper-scissor format: {}",
+        score_rps
+    );
+    info!(
+        "Final score if following strategy book with lose-draw-win format: {}",
+        score_ldw
+    );
 
     Ok(())
 }

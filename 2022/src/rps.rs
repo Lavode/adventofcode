@@ -93,7 +93,58 @@ pub struct Round {
     pub player_b_choice: Choice,
 }
 
+/// Possible formats in which the strategies are serialized.
+pub enum RoundSerializationFormat {
+    /// A and X stand for Rock, B and Y for Paper, C and Z for Scissors, for the first respectively
+    /// the second player.
+    RockPaperScissors,
+    /// A stands for Rock, B for Paper, C for Scissors.
+    /// X tells the second player to lose, Y to draw, Z to win.
+    LoseDrawWin,
+}
+
 impl Round {
+    pub fn parse(s: &str, format: RoundSerializationFormat) -> Result<Round, Error> {
+        let parts: Vec<&str> = s.split(" ").collect();
+        if parts.len() != 2 {
+            return Err(Error::DataError(format!(
+                "Invalid round, must contain exactly one choice for each player. Got: {}",
+                s
+            )));
+        }
+
+        let player_a_choice = Choice::from_str(parts[0])?;
+
+        match format {
+            RoundSerializationFormat::RockPaperScissors => {
+                let player_b_choice = Choice::from_str(parts[1])?;
+
+                return Ok(Round {
+                    player_a_choice,
+                    player_b_choice,
+                });
+            }
+            RoundSerializationFormat::LoseDrawWin => {
+                let player_b_choice = match parts[1] {
+                    "X" => player_a_choice.wins_vs(),  // Make sure we lose
+                    "Y" => player_a_choice.clone(),    // Make sure we draw
+                    "Z" => player_a_choice.loses_vs(), // Make sure we win
+                    _ => {
+                        return Err(Error::DataError(format!(
+                            "Invalid strategy for us: {}",
+                            parts[1]
+                        )))
+                    }
+                };
+
+                return Ok(Round {
+                    player_a_choice,
+                    player_b_choice,
+                });
+            }
+        }
+    }
+
     /// Calculate scores achieved by player A and B respectively. Returns a tuple where first item
     /// is player A's score, second item player B's.
     pub fn score(&self) -> (u32, u32) {
@@ -106,58 +157,6 @@ impl Round {
         score_b += self.player_b_choice.versus(&self.player_a_choice).score();
 
         (score_a, score_b)
-    }
-}
-
-impl FromStr for Round {
-    type Err = Error;
-
-    // Parsing as per first part of exercise
-    // fn from_str(s: &str) -> Result<Self, Self::Err> {
-    //     let parts: Vec<&str> = s.split(" ").collect();
-    //     if parts.len() != 2 {
-    //         return Err(Error::DataError(format!(
-    //             "Invalid round, must contain exactly one choice for each player. Got: {}",
-    //             s
-    //         )));
-    //     }
-
-    //     let player_a_choice = Choice::from_str(parts[0])?;
-    //     let player_b_choice = Choice::from_str(parts[1])?;
-
-    //     return Ok(Round {
-    //         player_a_choice,
-    //         player_b_choice,
-    //     });
-    // }
-
-    // Parsing as per second part of exercise
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.split(" ").collect();
-        if parts.len() != 2 {
-            return Err(Error::DataError(format!(
-                "Invalid round, must contain exactly one choice for each player. Got: {}",
-                s
-            )));
-        }
-
-        let player_a_choice = Choice::from_str(parts[0])?;
-        let player_b_choice = match parts[1] {
-            "X" => player_a_choice.wins_vs(),  // Make sure we lose
-            "Y" => player_a_choice.clone(),    // Make sure we draw
-            "Z" => player_a_choice.loses_vs(), // Make sure we win
-            _ => {
-                return Err(Error::DataError(format!(
-                    "Invalid strategy for us: {}",
-                    parts[1]
-                )))
-            }
-        };
-
-        return Ok(Round {
-            player_a_choice,
-            player_b_choice,
-        });
     }
 }
 
@@ -227,7 +226,7 @@ mod tests {
 
     #[test]
     fn parse_round_success() {
-        let s = Round::from_str("A X").unwrap();
+        let s = Round::parse("A X", RoundSerializationFormat::LoseDrawWin).unwrap();
         assert_eq!(
             s,
             Round {
@@ -236,20 +235,29 @@ mod tests {
             }
         );
 
-        let s = Round::from_str("C Y").unwrap();
+        let s = Round::parse("C Y", RoundSerializationFormat::LoseDrawWin).unwrap();
         assert_eq!(
             s,
             Round {
                 player_a_choice: Choice::Scissors,
                 player_b_choice: Choice::Scissors,
             }
-        )
+        );
+
+        let s = Round::parse("A X", RoundSerializationFormat::RockPaperScissors).unwrap();
+        assert_eq!(
+            s,
+            Round {
+                player_a_choice: Choice::Rock,
+                player_b_choice: Choice::Rock,
+            }
+        );
     }
 
     #[test]
     fn parse_round_invalid() {
-        Round::from_str("A X A").unwrap_err();
-        Round::from_str("A U").unwrap_err();
-        Round::from_str("A").unwrap_err();
+        Round::parse("A X A", RoundSerializationFormat::LoseDrawWin).unwrap_err();
+        Round::parse("A U", RoundSerializationFormat::LoseDrawWin).unwrap_err();
+        Round::parse("A", RoundSerializationFormat::LoseDrawWin).unwrap_err();
     }
 }
