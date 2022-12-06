@@ -1,6 +1,8 @@
 use std::{collections::HashSet, path::PathBuf, process::exit, str::FromStr};
 
-use adventofcode::{calories, elves::Elf, error::Error, input, rps::Round, rucksack::Rucksack};
+use adventofcode::{
+    calories, elves::Elf, error::Error, input, range::Range, rps::Round, rucksack::Rucksack,
+};
 use log::{debug, error, info};
 
 fn main() {
@@ -18,7 +20,12 @@ fn main() {
     //     Err(e) => abort(e),
     // }
 
-    match day_three() {
+    // match day_three() {
+    //     Ok(_) => info!(""),
+    //     Err(e) => abort(e),
+    // }
+
+    match day_four() {
         Ok(_) => info!(""),
         Err(e) => abort(e),
     }
@@ -177,6 +184,44 @@ fn item_priority(item: char) -> u32 {
         true => item as u32 - ascii_lowercase_a + 1,
         false => item as u32 - ascii_uppercase_a + 27,
     };
+}
+
+fn day_four() -> Result<(), Error> {
+    let ranges_list = input::to_string(input::input_path(4))?;
+    let ranges_list: Vec<&str> = ranges_list.lines().collect();
+
+    let mut contained_count = 0;
+    let mut overlapping_count = 0;
+
+    for range_tuple in ranges_list {
+        let ranges: Vec<&str> = range_tuple.split(",").collect();
+        if ranges.len() != 2 {
+            return Err(Error::DataError(format!(
+                "Expected line to contain two ranges, got: {}",
+                range_tuple
+            )));
+        }
+
+        let r1 = Range::from_str(ranges[0])?;
+        let r2 = Range::from_str(ranges[1])?;
+
+        if r1.contains(&r2) || r2.contains(&r1) {
+            contained_count += 1;
+        }
+
+        if r1.overlaps(&r2) {
+            overlapping_count += 1;
+        }
+    }
+
+    info!(
+        "For {} pairs of ranges, one contains the other",
+        contained_count
+    );
+
+    info!("For {} pairs of ranges, they overlap", overlapping_count);
+
+    Ok(())
 }
 
 fn abort(e: Error) {

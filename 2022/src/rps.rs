@@ -232,7 +232,7 @@ mod tests {
             s,
             Round {
                 player_a_choice: Choice::Rock,
-                player_b_choice: Choice::Rock
+                player_b_choice: Choice::Scissors,
             }
         );
 
@@ -241,7 +241,7 @@ mod tests {
             s,
             Round {
                 player_a_choice: Choice::Scissors,
-                player_b_choice: Choice::Paper,
+                player_b_choice: Choice::Scissors,
             }
         )
     }
