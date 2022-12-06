@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf, process::exit, str::FromStr};
+use std::{collections::HashSet, process::exit, str::FromStr};
 
 use adventofcode::{
     calories, elves::Elf, error::Error, input, range::Range, rps::Round, rucksack::Rucksack,
@@ -10,23 +10,22 @@ fn main() {
 
     info!("Advent of Code: 2022");
 
-    // match day_one() {
-    //     Ok(_) => info!(""),
-    //     Err(e) => abort(e),
-    // }
+    let day: usize = std::env::args()
+        .nth(1)
+        .expect("Usage: adventofcode <day>")
+        .parse()
+        .expect("Invalid value for parameter <day>, must be numerical");
 
-    // match day_two() {
-    //     Ok(_) => info!(""),
-    //     Err(e) => abort(e),
-    // }
+    let day_fn = match day {
+        1 => day_one,
+        2 => day_two,
+        3 => day_three,
+        4 => day_four,
+        _ => panic!("Invalid day selected"),
+    };
 
-    // match day_three() {
-    //     Ok(_) => info!(""),
-    //     Err(e) => abort(e),
-    // }
-
-    match day_four() {
-        Ok(_) => info!(""),
+    match day_fn() {
+        Ok(_) => {}
         Err(e) => abort(e),
     }
 }
