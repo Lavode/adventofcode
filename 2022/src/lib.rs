@@ -5,3 +5,4 @@ pub mod input;
 pub mod range;
 pub mod rps;
 pub mod rucksack;
+pub mod supply;

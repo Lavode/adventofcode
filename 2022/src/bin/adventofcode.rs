@@ -2,6 +2,7 @@ use std::{collections::HashSet, process::exit, str::FromStr};
 
 use adventofcode::{
     calories, elves::Elf, error::Error, input, range::Range, rps::Round, rucksack::Rucksack,
+    supply::Supplies,
 };
 use log::{debug, error, info};
 
@@ -21,6 +22,7 @@ fn main() {
         2 => day_two,
         3 => day_three,
         4 => day_four,
+        5 => day_five,
         _ => panic!("Invalid day selected"),
     };
 
@@ -242,6 +244,24 @@ fn day_four() -> Result<(), Error> {
     );
 
     info!("For {} pairs of ranges, they overlap", overlapping_count);
+
+    Ok(())
+}
+
+fn day_five() -> Result<(), Error> {
+    let data = input::to_string(input::input_path(5))?;
+    let data = data.lines();
+
+    // Serialiation of stacked crates and commands is separated by an empty line;
+    let stack_data = data.clone().take_while(|l| *l != "");
+    let command_data = data.clone().skip_while(|l| *l != "").skip(1);
+
+    // There must be a cleaner way, surely :)
+    let stack_data = stack_data.collect::<Vec<&str>>().join("\n");
+    let command_data = command_data.collect::<Vec<&str>>().join("\n");
+
+    let supplies = Supplies::from_str(&stack_data)?;
+    println!("Supplies = {:?}", supplies);
 
     Ok(())
 }
