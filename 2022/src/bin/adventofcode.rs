@@ -1,8 +1,14 @@
 use std::{collections::HashSet, process::exit, str::FromStr};
 
 use adventofcode::{
-    calories, elves::Elf, error::Error, input, range::Range, rps::Round, rucksack::Rucksack,
-    supply::Supplies,
+    calories,
+    elves::Elf,
+    error::Error,
+    input,
+    range::Range,
+    rps::Round,
+    rucksack::Rucksack,
+    supply::{Command, Supplies},
 };
 use log::{debug, error, info};
 
@@ -260,8 +266,23 @@ fn day_five() -> Result<(), Error> {
     let stack_data = stack_data.collect::<Vec<&str>>().join("\n");
     let command_data = command_data.collect::<Vec<&str>>().join("\n");
 
-    let supplies = Supplies::from_str(&stack_data)?;
-    println!("Supplies = {:?}", supplies);
+    let mut supplies = Supplies::from_str(&stack_data)?;
+
+    for command in command_data.lines() {
+        debug!("Applying command: {:?}", command);
+        let command = Command::from_str(command)?;
+        supplies.apply(&command)?;
+        debug!("Supplies = {:?}", supplies);
+    }
+
+    let mut code: String = "".to_string();
+    for (i, stack) in supplies.stacks.iter().enumerate() {
+        let crate_ = stack[0];
+        info!("Top crate in stack {}: {}", i, crate_);
+        code.push(crate_);
+    }
+
+    info!("Codeword: {}", code);
 
     Ok(())
 }
