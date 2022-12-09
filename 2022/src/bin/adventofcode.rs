@@ -266,23 +266,52 @@ fn day_five() -> Result<(), Error> {
     let stack_data = stack_data.collect::<Vec<&str>>().join("\n");
     let command_data = command_data.collect::<Vec<&str>>().join("\n");
 
+    crate_mover_9000(&command_data, &stack_data)?;
+    crate_mover_9001(&command_data, &stack_data)?;
+
+    Ok(())
+}
+
+fn crate_mover_9000(command_data: &str, stack_data: &str) -> Result<(), Error> {
     let mut supplies = Supplies::from_str(&stack_data)?;
 
     for command in command_data.lines() {
         debug!("Applying command: {:?}", command);
         let command = Command::from_str(command)?;
-        supplies.apply(&command)?;
+        supplies.apply(&command, adventofcode::supply::CommandType::SingleCrate)?;
         debug!("Supplies = {:?}", supplies);
     }
 
     let mut code: String = "".to_string();
     for (i, stack) in supplies.stacks.iter().enumerate() {
         let crate_ = stack[0];
-        info!("Top crate in stack {}: {}", i, crate_);
+        info!("Crate-Mover 9000: Top crate in stack {}: {}", i, crate_);
         code.push(crate_);
     }
 
-    info!("Codeword: {}", code);
+    info!("Crate-Mover 9000: Codeword: {}", code);
+
+    Ok(())
+}
+
+fn crate_mover_9001(command_data: &str, stack_data: &str) -> Result<(), Error> {
+    let mut supplies = Supplies::from_str(&stack_data)?;
+
+    for command in command_data.lines() {
+        debug!("Applying command: {:?}", command);
+        let command = Command::from_str(command)?;
+        supplies.apply(&command, adventofcode::supply::CommandType::MultiCrate)?;
+        debug!("Supplies = {:?}", supplies);
+    }
+
+    let mut code: String = "".to_string();
+    for (i, stack) in supplies.stacks.iter().enumerate() {
+        let crate_ = stack[0];
+        info!("Crate-Mover 9001: Top crate in stack {}: {}", i, crate_);
+        code.push(crate_);
+    }
+
+    info!("Crate-Mover 9001: Codeword: {}", code);
 
     Ok(())
 }

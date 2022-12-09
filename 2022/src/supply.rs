@@ -11,7 +11,7 @@ pub struct Supplies {
 }
 
 impl Supplies {
-    pub fn apply(&mut self, command: &Command) -> Result<(), Error> {
+    pub fn apply(&mut self, command: &Command, command_type: CommandType) -> Result<(), Error> {
         if command.source >= self.stacks.len() {
             return Err(Error::DataError(format!(
                 "Invalid command {:?}: Accessing invalid source stack {}",
@@ -26,18 +26,43 @@ impl Supplies {
             )));
         }
 
-        for _ in 0..command.count {
-            let crate_ = match self.stacks[command.source].pop_front() {
-                Some(c) => c,
-                None => {
-                    return Err(Error::DataError(format!(
-                        "Invalid command {:?}: Popped from empty stack {}",
-                        command, command.source
-                    )))
-                }
-            };
+        // TODO this is a fair bit of repeated code
+        match command_type {
+            CommandType::SingleCrate => {
+                for _ in 0..command.count {
+                    let crate_ = match self.stacks[command.source].pop_front() {
+                        Some(c) => c,
+                        None => {
+                            return Err(Error::DataError(format!(
+                                "Invalid command {:?}: Popped from empty stack {}",
+                                command, command.source
+                            )))
+                        }
+                    };
 
-            self.stacks[command.target].push_front(crate_);
+                    self.stacks[command.target].push_front(crate_);
+                }
+            }
+            CommandType::MultiCrate => {
+                let mut temp: VecDeque<char> = VecDeque::new();
+                for _ in 0..command.count {
+                    match self.stacks[command.source].pop_front() {
+                        Some(c) => match command_type {
+                            CommandType::SingleCrate => self.stacks[command.target].push_front(c),
+                            CommandType::MultiCrate => temp.push_front(c),
+                        },
+                        None => {
+                            return Err(Error::DataError(format!(
+                                "Invalid command {:?}: Popped from empty stack {}",
+                                command, command.source
+                            )))
+                        }
+                    };
+                }
+                for crate_ in temp {
+                    self.stacks[command.target].push_front(crate_);
+                }
+            }
         }
 
         Ok(())
@@ -82,6 +107,15 @@ impl FromStr for Supplies {
 
         Ok(Supplies { stacks })
     }
+}
+
+/// Enum representing in which way crates are moved.
+#[derive(Debug)]
+pub enum CommandType {
+    /// Single create at a time is moved
+    SingleCrate,
+    /// All crates moved as one stack
+    MultiCrate,
 }
 
 #[derive(Debug)]
@@ -157,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_command() -> Result<(), Error> {
+    fn apply_command_single() -> Result<(), Error> {
         let mut supplies = Supplies {
             stacks: vec![
                 VecDeque::from(vec!['N', 'Z']),
@@ -167,18 +201,49 @@ mod tests {
         };
 
         let cmd = Command {
-            count: 1,
+            count: 2,
             source: 1,
             target: 0,
         };
-        supplies.apply(&cmd)?;
+        supplies.apply(&cmd, CommandType::SingleCrate)?;
 
         assert_eq!(
             supplies,
             Supplies {
                 stacks: vec![
-                    VecDeque::from(vec!['D', 'N', 'Z']),
-                    VecDeque::from(vec!['C', 'M']),
+                    VecDeque::from(vec!['C', 'D', 'N', 'Z']),
+                    VecDeque::from(vec!['M']),
+                    VecDeque::from(vec!['P']),
+                ],
+            }
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn apply_command_multi() -> Result<(), Error> {
+        let mut supplies = Supplies {
+            stacks: vec![
+                VecDeque::from(vec!['N', 'Z']),
+                VecDeque::from(vec!['D', 'C', 'M']),
+                VecDeque::from(vec!['P']),
+            ],
+        };
+
+        let cmd = Command {
+            count: 2,
+            source: 1,
+            target: 0,
+        };
+        supplies.apply(&cmd, CommandType::MultiCrate)?;
+
+        assert_eq!(
+            supplies,
+            Supplies {
+                stacks: vec![
+                    VecDeque::from(vec!['D', 'C', 'N', 'Z']),
+                    VecDeque::from(vec!['M']),
                     VecDeque::from(vec!['P']),
                 ],
             }
