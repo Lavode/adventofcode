@@ -3,9 +3,9 @@ package main
 
 import (
 	"log"
-	"regexp"
 
 	"github.com/lavode/adventofcode/2023/pkg/data"
+	"github.com/lavode/adventofcode/2023/pkg/nlp"
 )
 
 const dataRoot = "data/"
@@ -15,27 +15,6 @@ func main() {
 }
 
 func one() {
-	knownDigitsPattern := regexp.MustCompile("(1|2|3|4|5|6|7|8|9|one|two|three|four|five|six|seven|eight|nine)")
-	knownDigits := map[string]int{
-		"1":     1,
-		"one":   1,
-		"2":     2,
-		"two":   2,
-		"3":     3,
-		"three": 3,
-		"4":     4,
-		"four":  4,
-		"5":     5,
-		"five":  5,
-		"6":     6,
-		"six":   6,
-		"7":     7,
-		"seven": 7,
-		"8":     8,
-		"eight": 8,
-		"9":     9,
-		"nine":  9,
-	}
 	sum := 0
 
 	input, err := data.LinesFromFile(dataRoot + "1.txt")
@@ -44,24 +23,16 @@ func one() {
 	}
 
 	for _, line := range input {
-		// Find first digit
-		for i := 0; i < len(line); i++ {
-			uptoHere := string(line[0 : i+1])
-			if match := knownDigitsPattern.FindString(uptoHere); match != "" {
-				sum += knownDigits[match] * 10
-				break
-			}
-
+		if digit, ok := nlp.FindDigitFromFront(line, true); ok {
+			sum += digit * 10
+		} else {
+			log.Fatalf("Did not find any digit in line: %s", line)
 		}
 
-		// And the last digit
-		for i := len(line) - 1; i >= 0; i-- {
-			uptoHere := string(line[i:len(line)])
-			if match := knownDigitsPattern.FindString(uptoHere); match != "" {
-				sum += knownDigits[match]
-				break
-			}
-
+		if digit, ok := nlp.FindDigitFromBack(line, true); ok {
+			sum += digit
+		} else {
+			log.Fatalf("Did not find any digit in line: %s", line)
 		}
 	}
 
