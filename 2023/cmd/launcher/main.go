@@ -4,6 +4,7 @@ package main
 import (
 	"log"
 
+	"github.com/lavode/adventofcode/2023/pkg/balls"
 	"github.com/lavode/adventofcode/2023/pkg/data"
 	"github.com/lavode/adventofcode/2023/pkg/nlp"
 )
@@ -11,7 +12,8 @@ import (
 const dataRoot = "data/"
 
 func main() {
-	one()
+	// one()
+	two()
 }
 
 func one() {
@@ -37,4 +39,33 @@ func one() {
 	}
 
 	log.Printf("Sum of first+last digit of all lines: %v", sum)
+}
+
+func two() {
+	input, err := data.LinesFromFile(dataRoot + "2.txt")
+	if err != nil {
+		log.Fatalf("Error reading input file: %v", err)
+	}
+
+	games := make([]balls.Game, 0)
+	for _, line := range input {
+		game, err := balls.ParseGame(line)
+		if err != nil {
+			log.Fatalf("Error parsing game: %v", err)
+		}
+		games = append(games, game)
+	}
+
+	sumOfMatching := 0
+	target := map[string]int{"red": 12, "green": 13, "blue": 14}
+	for _, game := range games {
+		bound := game.BoundOnBalls()
+
+		if target["red"] >= bound["red"] && target["green"] >= bound["green"] && target["blue"] >= bound["blue"] {
+			// Game might have happened, with target bag
+			sumOfMatching += int(game.Id)
+		}
+	}
+
+	log.Printf("Sum of plausible IDs: %d", sumOfMatching)
 }
